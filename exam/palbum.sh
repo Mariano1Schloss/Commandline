@@ -59,10 +59,45 @@ function general_index  () {
 			echo $(find $year/ -type f | wc -l)>>$1/index.html
 			#à faire: faire le lien entre chaque année et l'index.html correspondant
 		fi
+	year_index $1 $year
 	done
 	echo "</p>
 </body>
 </html>">>$1/index.html
+
+
+}
+
+function year_index () {
+	#$1 is album rep $2 is the year
+       index="$2/index.html"
+       echo "index $index"
+	echo "<!DOCTYPE html>
+<html>
+<body>
+<h1>$2</h1>">>$index
+	#we sort the days (YYY-MM-DD format) by month in the days.txt
+	ls -1 $2 | sort -t- +1nr | grep - >days.txt
+	while read day
+	do
+		echo "day $day"
+		month=${day:0:7}#we select the YYY-MM part
+		echo "month $month"
+		echo "<h2>$month</h2>
+<h3>$day</h3>
+<p>">>$index
+		
+		for image in $2/$day/*
+		do
+			echo "image $image"
+			#we select the base name of the image
+			image_basename=$(echo "$image" | cut -d '/' -f 4 | cut -d '.' -f 1)
+			echo "image id$image_basename"
+			echo "<a> href=\"$image\"><img src=\"$2/$day/.thumbs/$(ls  $2/$day/.thumbs | grep $image_basename) \" ">>$index
+		done
+	echo "</p>">>$index		
+	done<days.txt
+	rm days.txt
 
 
 }
@@ -85,20 +120,22 @@ do
 	echo "line $line"
 	date=$(identify -verbose $line |grep date:modify|cut -b 18-27)
 	year=${date:0:4}
+	thumbs=".thumbs"
 	echo "date : $date   year : $year "
 	if [ ! -d "$2/$year" ]  
 	then 
 		mkdir "$2/$year"
 		mkdir "$2/$year/$date"
+		mkdir "$2/$year/$date/$thumbs" #piste amélioration : tout créer d'un coup
+
 	fi
 
 	if [ ! -d "$2/$year/$date" ]
 	then
 		mkdir "$2/$year/$date"
-		
+		mkdir "$2/$year/$date/$thumbs"
+	
 	fi
-	thumbs=".thumbs"
-	mkdir "$2/$year/$date/$thumbs"
 	cp "$line"  "$2/$year/$date"
 	thumbnails $2/$year/$date $line
 	#echo "$image">>$2/$year/$date/image
@@ -106,3 +143,4 @@ done<list_of_pictures
 rm list_of_pictures
 
 general_index $2
+
