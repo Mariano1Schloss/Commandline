@@ -72,8 +72,8 @@ function thumbnails(){
 	image_name=$(echo "$image" | cut -f 1 -d '.')
 	thumbnail_name="${image_name}-thumb.jpg"
 	convert -define jpeg:size=500x180  $image -thumbnail 250x90  $thumbnail_name
-	cp $thumbnail_name $1/.thumbs
-	rm $thumbnnail_name
+	mv $thumbnail_name "$1/.thumbs"
+	#rm $thumbnnail_name
 
 }
 
