@@ -20,7 +20,7 @@ function check_input_directory() {
 	while read ligne
 		do
 	#We check if each jpg file contains meta data
-		if [ "$(identify -verbose $ligne|grep date:modify)" == "" ]
+	if [ "$(exiftime $ligne | grep "Image Created" | cut -d" " -f3)" == "" ]
 		then
 			echo "$1 does not contain meta data, and so cannot be sotred properly"
 			exit 3
@@ -31,7 +31,7 @@ function check_input_directory() {
 }
 
 
-#fi
+
 
 
 #An  index.html file is present in OUTPUT-DIRECTORY, referencing each
@@ -67,33 +67,36 @@ function general_index  () {
 function year_index () {
 	for year in $1/*
 	do
-		
-		#$1 is album rep $year is the year
-      		index="$year/index.html"
-       		echo "index $index"
-		echo "<!DOCTYPE html>
+		if [ -d $year ]
+		then
+
+			#$1 is album rep $year is the year
+      			index="$year/index.html"
+       			
+			echo "<!DOCTYPE html>
 <html>
 <body>
 <h1>$year</h1>">>$index
-		#we sort the days (YYY:MM:DD format) by month in the days.txt
-		ls -1 $year | sort -t":" +1nr >days.txt
-		while read day
-		do
-			month=${day:0:7}
-			echo "<h2>$month</h2>
+			#we sort the days (YYY:MM:DD format) by month in the days.txt (grep "2" is to avoid going through index.html"
+			ls -1 $year | sort -t":" +1nr| grep "2" >days.txt
+			while read day
+			do
+				month=${day:0:7}
+				echo "<h2>$month</h2>
 <h3>$day</h3>
 <p>">>$index
-		#we go through the images taken that day
-			for image in $year/$day/*
-			do
-				#we select the base name of the image
-				image_basename=$(echo "$image" | cut -d '/' -f 4 | cut -d '.' -f 1)
-				#we search for the matching thumbnail
-				echo "<a> href=\"$image\"><img src=\"$year/$day/.thumbs/$(ls  $year/$day/.thumbs | grep $image_basename) \"/></a> ">>$index
-			done
-		echo "</p>">>$index		
-		done<days.txt
-		rm days.txt
+			#we go through the images taken that day
+				for image in $year/$day/*
+				do
+					#we select the base name of the image
+					image_basename=$(echo "$image" | cut -d '/' -f 4 | cut -d '.' -f 1)
+					#we search for the matching thumbnail
+					echo "<a> href=\"$image\"><img src=\"$year/$day/.thumbs/$(ls  $year/$day/.thumbs | grep $image_basename) \"/></a> ">>$index
+				done
+			echo "</p>">>$index		
+			done<days.txt
+			rm days.txt
+		fi
 	done
 
 
@@ -147,7 +150,12 @@ function arborescence () {
 }
 
 #MAIN
-#check_input_directory $1
+if [ $# -lt 2 ]
+then
+	echo "palbum.sh requires two repositories in arguments"
+	exit 1
+fi
+check_input_directory $1
 mkdir $2
 arborescence $1 $2
 general_index $2
