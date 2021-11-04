@@ -1,22 +1,11 @@
 #!/bin/bash
-set -x
-
-
-#TO DO
-
-#test deux arguments
-
-#test argument 2 vali
-#	sinon le créer
-
-#Créer fonction arboresecnce
-#cas suivant 2
-#liens entre les index
+#set x
+#Document written by Mathieu Delbos
 
 
 
 
-mkdir $2
+
 
 function check_input_directory() {
 	
@@ -40,7 +29,7 @@ function check_input_directory() {
 	done < list_of_pictures
 	rm list_of_pictures
 }
-#version moins lourde?
+
 
 #fi
 
@@ -54,19 +43,19 @@ function general_index  () {
 <body>
 <h1>General index of the album</h1>
 <p>">>$1/index.html
+	#we go through the years repositories
 	for year in $1/*
 	do
 		
 		if [ -d $year ]
 		then
-			echo "$year"
+			#each year is a link to the corresponding year index
 			echo "<a href=\"$year/index.html\">$year</link></a>">>$1/index.html
 			echo "number of pictures taken this year:">>$1/index.html
+			#we count the pictures (excluding the thumbnails)
 			echo $(find $year/  -maxdepth 2 -type f | wc -l)>>$1/index.html
-			#à faire: faire le lien entre chaque année et l'index.html correspondant
+			
 		fi
-	
-	
 	done
 	echo "</p>
 </body>
@@ -86,23 +75,20 @@ function year_index () {
 <html>
 <body>
 <h1>$year</h1>">>$index
-		#we sort the days (YYY-MM-DD format) by month in the days.txt
-		ls -1 $year | sort -t- +1nr | grep - >days.txt
+		#we sort the days (YYY:MM:DD format) by month in the days.txt
+		ls -1 $year | sort -t":" +1nr >days.txt
 		while read day
 		do
-			echo "day $day"
 			month=${day:0:7}
-			echo "month $month"
 			echo "<h2>$month</h2>
 <h3>$day</h3>
 <p>">>$index
-		
+		#we go through the images taken that day
 			for image in $year/$day/*
 			do
-				echo "image $image"
 				#we select the base name of the image
 				image_basename=$(echo "$image" | cut -d '/' -f 4 | cut -d '.' -f 1)
-				echo "image id$image_basename"
+				#we search for the matching thumbnail
 				echo "<a> href=\"$image\"><img src=\"$year/$day/.thumbs/$(ls  $year/$day/.thumbs | grep $image_basename) \"/></a> ">>$index
 			done
 		echo "</p>">>$index		
@@ -120,6 +106,7 @@ function thumbnails(){
 	image_name=$(echo "$image" | cut -f 1 -d '.')
 	thumbnail_name="${image_name}-thumb.jpg"
 	convert -define jpeg:size=500x180  $image -thumbnail 250x90  $thumbnail_name
+	#once the thumbnail is created; we move it to the right repository
 	mv $thumbnail_name "$1/.thumbs"
 	#rm $thumbnnail_name
 
@@ -127,16 +114,17 @@ function thumbnails(){
 
 
 function arborescence () {
-	echo "in arbor"
 	find $1 -type f -name "*.jpg">list_of_pictures
-	echo "entering while lol"
+	#we select only the jpg files
 	while read line
 	do
-		echo "line $line"
-		date=$(identify -verbose $line |grep date:modify|cut -b 18-27)
+		
+		#date=$(identify -verbose $line |grep date:modify|cut -b 18-27)
+		#date=$(exif -line | grep "Date and Time (Origi" | cut -d "|" -f2)
+		#we extract the date of creation
+		date=$(exiftime $line | grep "Image Created" | cut -d" " -f3)
 		year=${date:0:4}
 		thumbs=".thumbs"
-		echo "date : $date   year : $year "
 		if [ ! -d "$2/$year" ]  
 		then 
 			mkdir "$2/$year"
@@ -152,14 +140,15 @@ function arborescence () {
 	
 		fi
 	cp "$line"  "$2/$year/$date"
+	#we create all the thumbnails
 	thumbnails $2/$year/$date $line
-	#echo "$image">>$2/$year/$date/image
 	done<list_of_pictures
 	rm list_of_pictures
 }
 
 #MAIN
-check_input_directory $1
+#check_input_directory $1
+mkdir $2
 arborescence $1 $2
 general_index $2
 year_index $2
